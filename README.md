@@ -5,6 +5,7 @@ Available relationships include :
 - A + B is prime
 - A + B is in the fibonacci sequence
 - A + B is in the integers sum sequence
+- A is linked to A' + 1 and A' + 2, where A' = A + card({n in [0, A] such that n belongs to the sum of integers})
 
 and many more. Please feel free to contribute and add more findings to the project.
 

@@ -107,7 +107,7 @@
                 <option value="sumTetra">A + B is in Un+4 = Un+3 + Un+2 + Un+1 + Un (U0=0, U1=1, U2=2, U3=3)</option>
                 <option value="sumLastDigit">A + B is in Un+1 = Un + Un%10 (U0=1)</option>
                 <option value="sumTriangular">A + B is in the sum of integers</option>
-                <option value="sumCorrectedTriangular">A is linked to A' + 1 & A' + 2, where A' = A + card({n between 0 and A such that n belongs to the sum of integers})</option>
+                <option value="sumCorrectedTriangular">A is linked to A'+1 & A'+2 (see readMe for A' definition)</option>
                 <option value="consecutiveLinks">A is linked to A+1, A+2, A+3</option>
                 <option value="divSquare">A / B is a perfect square</option>
                 <option value="divCube">A / B is a perfect cube</option>
@@ -467,11 +467,11 @@
                 }, 100);
                 //Graph.d3AlphaMin(0); // "Kick" la simulation en lui donnant une cible alpha
                 //Graph.resumeAnimation(); // On relance l'animation du rendu
-                toggleSimBtn.textContent = 'Stopper le maintien à la température initiale';
+                toggleSimBtn.textContent = 'Stop keeping warm';
             } else {
                 // Mettre en pause la simulation
                 //Graph.d3AlphaMin(1); // Laisse la simulation converger et se figer
-                toggleSimBtn.textContent = 'Maintenir à la température initiale';
+                toggleSimBtn.textContent = 'Keep simulation warm';
                 clearInterval(reheatInterval);
                 reheatInterval = null;
                 //Graph.cooldownTime(15000);
