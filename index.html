@@ -90,29 +90,29 @@
     <!-- Conteneur pour l'interface utilisateur -->
     <div id="ui-container">
         <div class="flex items-center">
-            <h1 class="font-bold text-lg">Graph GPU</h1>
+            <h1 class="font-bold text-lg">Natural integers graph</h1>
             <span id="indicator" class="w-3 h-3 rounded-full ml-2 hidden"></span>
         </div>
         <div class="form-row">
-            <label for="maxNumber" class="text-sm font-medium">Nombre maximum :</label>
+            <label for="maxNumber" class="text-sm font-medium">Maximum number :</label>
             <input type="number" id="maxNumber" value="20" min="2" class="rounded-md border p-1" />
         </div>
         <div class="form-row">
-            <label for="modeSelect" class="text-sm font-medium">Mode :</label>
+            <label for="modeSelect" class="text-sm font-medium">Relationship :</label>
             <select id="modeSelect" class="rounded-md border p-1">
-                <option value="divPrime">A / B est premier</option>
-                <option value="sumPrime">Somme est premier</option>
-                <option value="sumFibo">Somme est Fibonacci</option>
-                <option value="sumUnPlus2">A + B est dans Un+3 = Un+2 + Un+1 + Un (U0=0, U1=1, U2=2)</option>
-                <option value="sumTetra">A + B est dans Un+4 = Un+3 + Un+2 + Un+1 + Un (U0=0, U1=1, U2=2, U3=3)</option>
-                <option value="sumLastDigit">A + B est dans Un+1 = Un + Un%10 (U0=1)</option>
-                <option value="sumTriangular">A + B est dans la somme des entiers</option>
-                <option value="sumCorrectedTriangular">A lié à A' + 1 & A' + 2</option>
-                <option value="consecutiveLinks">A lié à A+1, A+2, A+3</option>
-                <option value="divSquare">A / B est un carré parfait</option>
-                <option value="divCube">A / B est un cube parfait</option>
-                <option value="modPrime">A % B est premier</option>
-                <option value="modSquare">A % B est un carré parfait</option>
+                <option value="divPrime">A / B is prime</option>
+                <option value="sumPrime">Sum is prime</option>
+                <option value="sumFibo">Sum is Fibonacci</option>
+                <option value="sumUnPlus2">A + B is in Un+3 = Un+2 + Un+1 + Un (U0=0, U1=1, U2=2)</option>
+                <option value="sumTetra">A + B is in Un+4 = Un+3 + Un+2 + Un+1 + Un (U0=0, U1=1, U2=2, U3=3)</option>
+                <option value="sumLastDigit">A + B is in Un+1 = Un + Un%10 (U0=1)</option>
+                <option value="sumTriangular">A + B is in the sum of integers</option>
+                <option value="sumCorrectedTriangular">A is linked to A' + 1 & A' + 2, where A' = A + card({n between 0 and A such that n belongs to the sum of integers})</option>
+                <option value="consecutiveLinks">A is linked to A+1, A+2, A+3</option>
+                <option value="divSquare">A / B is a perfect square</option>
+                <option value="divCube">A / B is a perfect cube</option>
+                <option value="modPrime">A % B is prime</option>
+                <option value="modSquare">A % B is a perfect square</option>
                 <option value="diffPow10">A - B = 10^n</option>
                 <option value="diffPow2">A - B = 2^n</option>
                 <option value="double">A -> 2.A + 5</option>
@@ -121,18 +121,18 @@
         <div class="form-row">
             <label class="text-sm font-medium flex items-center gap-2">
                 <input type="checkbox" id="removeIsolated" class="rounded-md" />
-                Retirer les nœuds isolés
+                Remove isolated nodes
             </label>
             <label class="text-sm font-medium flex items-center gap-2">
                 <input type="checkbox" id="dontRenderNodes" class="rounded-md" />
-                Ne pas afficher les noeuds
+                Only display edges
             </label>
         </div>
         <button id="updateBtn" class="bg-indigo-500 text-white rounded-md p-2 hover:bg-indigo-600 transition-colors duration-200">
-            Mettre à jour
+            Update
         </button>
         <button id="toggleSimBtn" class="bg-indigo-500 text-white rounded-md p-2 hover:bg-indigo-600 transition-colors duration-200">
-            Lancer la simulation
+            Start simulation
         </button>
     </div>
 
@@ -488,7 +488,7 @@
             
             // Afficher le spinner de chargement
             loadingOverlay.classList.add('visible');
-            updateBtn.textContent = 'Génération en cours...';
+            updateBtn.textContent = 'Generating...';
             updateBtn.disabled = true;
 
             // Mettre à jour le rendu des noeuds
@@ -500,7 +500,7 @@
             // Lorsque le graphique est mis à jour, relancer la simulation pour un nouveau rendu
             //Graph.d3AlphaMin(0);
             //Graph.resumeAnimation();
-            toggleSimBtn.textContent = 'Maintenir à la température initiale';
+            toggleSimBtn.textContent = 'Keep simulation warm (to unfold complex graphs)';
             forceMaxHeat = false;
             clearInterval(reheatInterval);
             reheatInterval = null;
@@ -513,7 +513,7 @@
             
             // Cacher le spinner de chargement
             loadingOverlay.classList.remove('visible');
-            updateBtn.textContent = 'Mettre à jour';
+            updateBtn.textContent = 'Update';
             updateBtn.disabled = false;
         };
         
