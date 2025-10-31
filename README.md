@@ -10,11 +10,11 @@ and many more. Please feel free to contribute and add more findings to the proje
 
 You can try it on the [github hosted page](https://nuel-mathieu.github.io/Natural-integers-relationship-graphs/).
 Notable results are :
-- Number whos sum is prime up to 500, showing a donut like structure. Node colors of a given number n represent the result of n % 6.
+- Number pairs whos sum is prime up to 500, showing a donut like structure. Node colors of a given number n represent the result of n % 6.
 ![prime sum donut](images/sumPrime.png)
 
-- Number whos division is prime up to 5000 : 
+- Number pairs whos division is prime up to 5000 : 
 ![prime ratio](images/ratioPrime.png)
 
-- Numbers whos sum belong to the first 5000 fibonacci sequence elements, showing a fractal like stucture :
+- Numbers pairs whos sum belong to the first 5000 fibonacci sequence elements, showing a fractal like stucture :
 ![fibonacci sum](images/fibonacci.png)
