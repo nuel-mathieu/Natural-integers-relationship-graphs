@@ -5,6 +5,7 @@ Available relationships include :
 - A + B is prime
 - A + B is in the fibonacci sequence
 - A + B is in the integers sum sequence
+
 and many more. Please feel free to contribute and ad more findings to the project.
 
 You can try it on the [github hosted page](https://nuel-mathieu.github.io/Natural-integers-relationship-graphs/).
