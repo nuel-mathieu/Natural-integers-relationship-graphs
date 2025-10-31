@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph 3D Relations Numériques</title>
+    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f3f4f6;
+        }
+        #ui-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 90%;
+        }
+        .form-row {
+            display: flex;
+            flex-direction: column;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #6366f1;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #indicator {
+        background-color: #10B981; /* Vert émeraude */
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.7;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0.8);
+                opacity: 0.7;
+            }
+        }
+        .pulsing {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Conteneur pour l'interface utilisateur -->
+    <div id="ui-container">
+        <div class="flex items-center">
+            <h1 class="font-bold text-lg">Graph GPU</h1>
+            <span id="indicator" class="w-3 h-3 rounded-full ml-2 hidden"></span>
+        </div>
+        <div class="form-row">
+            <label for="maxNumber" class="text-sm font-medium">Nombre maximum :</label>
+            <input type="number" id="maxNumber" value="20" min="2" class="rounded-md border p-1" />
+        </div>
+        <div class="form-row">
+            <label for="modeSelect" class="text-sm font-medium">Mode :</label>
+            <select id="modeSelect" class="rounded-md border p-1">
+                <option value="divPrime">A / B est premier</option>
+                <option value="sumPrime">Somme est premier</option>
+                <option value="sumFibo">Somme est Fibonacci</option>
+                <option value="sumUnPlus2">A + B est dans Un+3 = Un+2 + Un+1 + Un (U0=0, U1=1, U2=2)</option>
+                <option value="sumTetra">A + B est dans Un+4 = Un+3 + Un+2 + Un+1 + Un (U0=0, U1=1, U2=2, U3=3)</option>
+                <option value="sumLastDigit">A + B est dans Un+1 = Un + Un%10 (U0=1)</option>
+                <option value="sumTriangular">A + B est dans la somme des entiers</option>
+                <option value="sumCorrectedTriangular">A lié à A' + 1 & A' + 2</option>
+                <option value="consecutiveLinks">A lié à A+1, A+2, A+3</option>
+                <option value="divSquare">A / B est un carré parfait</option>
+                <option value="divCube">A / B est un cube parfait</option>
+                <option value="modPrime">A % B est premier</option>
+                <option value="modSquare">A % B est un carré parfait</option>
+                <option value="diffPow10">A - B = 10^n</option>
+                <option value="diffPow2">A - B = 2^n</option>
+                <option value="double">A -> 2.A + 5</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <label class="text-sm font-medium flex items-center gap-2">
+                <input type="checkbox" id="removeIsolated" class="rounded-md" />
+                Retirer les nœuds isolés
+            </label>
+            <label class="text-sm font-medium flex items-center gap-2">
+                <input type="checkbox" id="dontRenderNodes" class="rounded-md" />
+                Ne pas afficher les noeuds
+            </label>
+        </div>
+        <button id="updateBtn" class="bg-indigo-500 text-white rounded-md p-2 hover:bg-indigo-600 transition-colors duration-200">
+            Mettre à jour
+        </button>
+        <button id="toggleSimBtn" class="bg-indigo-500 text-white rounded-md p-2 hover:bg-indigo-600 transition-colors duration-200">
+            Lancer la simulation
+        </button>
+    </div>
+
+    <!-- Conteneur pour le graphique 3D -->
+    <div id="graph-container" class="w-full h-full absolute top-0 left-0"></div>
+
+    <!-- Superposition de chargement -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        // Le code du Web Worker pour la génération des données
+        const workerScript = `
+            function isPrime(n) {
+                if (n < 2) return false;
+                if (n % 2 === 0) return n === 2;
+                for (let i = 3; i <= Math.sqrt(n); i += 2) {
+                    if (n % i === 0) return false;
+                }
+                return true;
+            }
+
+            function isPerfectSquare(n) {
+                return Number.isInteger(Math.sqrt(n));
+            }
+
+            function isPerfectCube(n) {
+                return Number.isInteger(Math.cbrt(n));
+            }
+
+            function generateFibonacciUpTo(max) {
+                const fib = new Set([0, 1]);
+                let a = 0, b = 1;
+                while (true) {
+                    const next = a + b;
+                    if (next > max) break;
+                    fib.add(next);
+                    a = b;
+                    b = next;
+                }
+                return fib;
+            }
+
+            // Génère la nouvelle suite Un+3 = Un+2 + Un+1 + Un avec U0=0, U1=1, U2=2
+            function generateNewSequenceUpTo(max) {
+                const sequence = new Set();
+                let u_n = 0;
+                let u_n_plus_1 = 1;
+                let u_n_plus_2 = 2;
+
+                sequence.add(u_n);
+                sequence.add(u_n_plus_1);
+                sequence.add(u_n_plus_2);
+
+                while (true) {
+                    const u_n_plus_3 = u_n_plus_2 + u_n_plus_1 + u_n;
+                    if (u_n_plus_3 > max) break;
+                    sequence.add(u_n_plus_3);
+                    u_n = u_n_plus_1;
+                    u_n_plus_1 = u_n_plus_2;
+                    u_n_plus_2 = u_n_plus_3;
+                }
+                return sequence;
+            }
+            
+            // Génère la nouvelle suite Un+4 = Un+3 + Un+2 + Un+1 + Un
+            function generateTetraSequenceUpTo(max) {
+                const sequence = new Set();
+                let u0 = 0, u1 = 1, u2 = 2, u3 = 3;
+
+                sequence.add(u0);
+                sequence.add(u1);
+                sequence.add(u2);
+                sequence.add(u3);
+
+                while (true) {
+                    const next = u0 + u1 + u2 + u3;
+                    if (next > max) break;
+                    sequence.add(next);
+                    u0 = u1;
+                    u1 = u2;
+                    u2 = u3;
+                    u3 = next;
+                }
+                return sequence;
+            }
+
+            // Génère la suite des nombres triangulaires
+            function generateTriangularNumbersUpTo(max) {
+                const sequence = new Set();
+                let n = 1;
+                let sum = 0;
+                while (true) {
+                    sum += n;
+                    if (sum > max) break;
+                    sequence.add(sum);
+                    n++;
+                }
+                return sequence;
+            }
+
+            // Génère la suite Un+1 = Un + Un%10
+            function generateSumLastDigitUpTo(max) {
+                const sequence = new Set();
+                let current = 1; 
+                sequence.add(current);
+                while (true) {
+                    const next = current + (current % 10);
+                    if (next > max) break;
+                    sequence.add(next);
+                    current = next;
+                }
+                return sequence;
+            }
+
+
+            self.onmessage = (event) => {
+                const { max, removeIsolated, mode } = event.data;
+                const nodes = [];
+                const links = [];
+                const allNumbers = Array.from({ length: max - 1 }, (_, i) => i + 2);
+
+                for (let i = 2; i <= max; i++) {
+                    nodes.push({ id: i, group: i % 6 });
+                }
+
+                if (mode === 'diffPow10') {
+                    const pow10 = new Set();
+                    for (let n = 0; Math.pow(10, n) <= max; n++) pow10.add(Math.pow(10, n));
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = i + 1; j <= max; j++) {
+                            if (pow10.has(j - i)) {
+                                links.push({ source: i, target: j });
+                            }
+                        }
+                    }
+                } else if (mode === 'diffPow2') {
+                    const pow2 = new Set();
+                    for (let n = 0; Math.pow(2, n) <= max; n++) pow2.add(Math.pow(2, n));
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = i + 1; j <= max; j++) {
+                            if (pow2.has(j - i)) {
+                                links.push({ source: i, target: j });
+                            }
+                        }
+                    }
+                } else if (mode === 'sumFibo') {
+                    const fibSet = generateFibonacciUpTo(2 * max);
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = i + 1; j <= max; j++) {
+                            const sum = i + j;
+                            if (fibSet.has(sum)) {
+                                links.push({ source: i, target: j });
+                            }
+                        }
+                    }
+                } else if (mode === 'sumUnPlus2') {
+                    const unPlus2Set = generateNewSequenceUpTo(2 * max);
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = i + 1; j <= max; j++) {
+                            const sum = i + j;
+                            if (unPlus2Set.has(sum)) {
+                                links.push({ source: i, target: j });
+                            }
+                        }
+                    }
+                } else if (mode === 'sumTetra') {
+                    const tetraSet = generateTetraSequenceUpTo(2 * max);
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = i + 1; j <= max; j++) {
+                            const sum = i + j;
+                            if (tetraSet.has(sum)) {
+                                links.push({ source: i, target: j });
+                            }
+                        }
+                    }
+                } else if (mode === 'sumLastDigit') {
+                    const lastDigitSet = generateSumLastDigitUpTo(2 * max);
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = i + 1; j <= max; j++) {
+                            const sum = i + j;
+                            if (lastDigitSet.has(sum)) {
+                                links.push({ source: i, target: j });
+                            }
+                        }
+                    }
+                } else if (mode === 'sumTriangular') {
+                    const triangularSet = generateTriangularNumbersUpTo(2 * max);
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = i + 1; j <= max; j++) {
+                            const sum = i + j;
+                            if (triangularSet.has(sum)) {
+                                links.push({ source: i, target: j });
+                            }
+                        }
+                    }
+                } else if (mode === 'sumCorrectedTriangular') {
+                    // Logique pour le nouveau mode : A lié à A' + 1 et A' + 2
+                    for (let a = 2; a <= max; a++) {
+                        // Trouver l'ensemble des nombres triangulaires <= A - 1
+                        const triangularNumbersUpToAminus1 = generateTriangularNumbersUpTo(a - 1);
+                        const correctedA = a + triangularNumbersUpToAminus1.size;
+
+                        const target1 = correctedA + 1;
+                        const target2 = correctedA + 2;
+
+                        if (target1 <= max) {
+                            links.push({ source: a, target: target1 });
+                        }
+                        if (target2 <= max) {
+                            links.push({ source: a, target: target2 });
+                        }
+                    }
+                } else if (mode === 'consecutiveLinks') {
+                    // Logique pour A lié à A+1, A+2, A+3
+                    for (let a = 2; a <= max; a++) {
+                        if (a + 1 <= max) {
+                            links.push({ source: a, target: a + 1 });
+                        }
+                        if (a + 2 <= max) {
+                            links.push({ source: a, target: a + 2 });
+                        }
+                        if (a + 3 <= max) {
+                            links.push({ source: a, target: a + 3 });
+                        }
+                    }
+                } else if (mode === 'double') {
+                    // Logique pour A lié à 2A
+                    for (let a = 2; a <= max; a++) {
+                        const target = 2 * a + 5;
+                        if (target <= max) {
+                            links.push({ source: a, target });
+                        }
+                    }
+                } else {
+                    for (let i = 2; i <= max; i++) {
+                        for (let j = 2; j <= max; j++) {
+                            if (i === j) continue;
+                            let condition = false;
+                            const val = (i / j);
+                            switch (mode) {
+                                case 'divPrime':
+                                    if (Number.isInteger(val) && isPrime(val)) condition = true;
+                                    break;
+                                case 'sumPrime':
+                                    if (i < j && isPrime(i + j)) condition = true;
+                                    break;
+                                case 'divSquare':
+                                    if (Number.isInteger(val) && isPerfectSquare(val)) condition = true;
+                                    break;
+                                case 'divCube':
+                                    if (Number.isInteger(val) && isPerfectCube(val)) condition = true;
+                                    break;
+                                case 'modPrime':
+                                    if (isPrime(i % j)) condition = true;
+                                    break;
+                                case 'modSquare':
+                                    const mod = i % j;
+                                    if (isPerfectSquare(mod) && mod > 0) condition = true;
+                                    break;
+                            }
+                            if (condition) links.push({ source: i, target: j });
+                        }
+                    }
+                }
+
+                if (removeIsolated) {
+                    const connected = new Set();
+                    links.forEach(l => { connected.add(l.source); connected.add(l.target); });
+                    const filteredNodes = nodes.filter(n => connected.has(n.id));
+                    self.postMessage({ nodes: filteredNodes, links });
+                } else {
+                    self.postMessage({ nodes, links });
+                }
+            };
+        `;
+        const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
+        const graphWorker = new Worker(workerUrl);
+
+        const elem = document.getElementById('graph-container');
+        const updateBtn = document.getElementById('updateBtn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const maxNumberInput = document.getElementById('maxNumber');
+        const modeSelect = document.getElementById('modeSelect');
+        const removeIsolatedCheckbox = document.getElementById('removeIsolated');
+        const dontRenderNodesCheckbox = document.getElementById('dontRenderNodes');
+
+        // Play / pause de la simulation
+        const toggleSimBtn = document.getElementById('toggleSimBtn');
+        let forceMaxHeat = false;
+        let reheatInterval = null;
+
+        // Tick indicator
+        const indicator = document.getElementById('indicator');
+
+        const Graph = ForceGraph3D()(elem)
+            .nodeVisibility(() => true) // Ne pas afficher les nœuds
+            .nodeLabel(node => `Nombre: ${node.id}`)
+            .nodeAutoColorBy('group')
+            .linkDirectionalParticles(0)
+            .linkDirectionalParticleWidth(0)
+            .onEngineTick(() => {
+                // La simulation est en cours : afficher l'indicateur
+                indicator.classList.remove('hidden');
+                indicator.classList.add('pulsing');
+            })
+            .onEngineStop(() => {
+                // La simulation s'est arrêtée : cacher l'indicateur
+                indicator.classList.add('hidden');
+                indicator.classList.remove('pulsing');
+            });
+
+        // Mise à jour de la taille du graphique sur le redimensionnement de la fenêtre
+        function resizeGraph() {
+            Graph.width(window.innerWidth).height(window.innerHeight);
+        }
+        window.addEventListener('resize', resizeGraph);
+        resizeGraph(); // Initial call
+
+        // Maintient de la simulation active
+        // Ajouter un écouteur d'événements pour le nouveau bouton
+        toggleSimBtn.addEventListener('click', () => {
+            if (!forceMaxHeat) {
+                // Relancer la simulation
+                //Graph.cooldownTime(Infinity);
+                Graph.d3ReheatSimulation();
+                reheatInterval = setInterval(() => {
+                    console.log('Reheating simulation to maintain activity');
+                    Graph.d3ReheatSimulation();
+                }, 100);
+                //Graph.d3AlphaMin(0); // "Kick" la simulation en lui donnant une cible alpha
+                //Graph.resumeAnimation(); // On relance l'animation du rendu
+                toggleSimBtn.textContent = 'Stopper le maintien à la température initiale';
+            } else {
+                // Mettre en pause la simulation
+                //Graph.d3AlphaMin(1); // Laisse la simulation converger et se figer
+                toggleSimBtn.textContent = 'Maintenir à la température initiale';
+                clearInterval(reheatInterval);
+                reheatInterval = null;
+                //Graph.cooldownTime(15000);
+            }
+            forceMaxHeat = !forceMaxHeat;
+        });
+
+
+        function updateGraph() {
+            const max = parseInt(maxNumberInput.value);
+            const removeIsolated = removeIsolatedCheckbox.checked;
+            const dontRenderNodes = dontRenderNodesCheckbox.checked;
+            const mode = modeSelect.value;
+            
+            // Afficher le spinner de chargement
+            loadingOverlay.classList.add('visible');
+            updateBtn.textContent = 'Génération en cours...';
+            updateBtn.disabled = true;
+
+            // Mettre à jour le rendu des noeuds
+            Graph.nodeVisibility(() => !dontRenderNodes);
+
+            // Envoyer les données au Web Worker
+            graphWorker.postMessage({ max, removeIsolated, mode });
+
+            // Lorsque le graphique est mis à jour, relancer la simulation pour un nouveau rendu
+            //Graph.d3AlphaMin(0);
+            //Graph.resumeAnimation();
+            toggleSimBtn.textContent = 'Maintenir à la température initiale';
+            forceMaxHeat = false;
+            clearInterval(reheatInterval);
+            reheatInterval = null;
+        }
+
+        // Écouter les messages du Web Worker
+        graphWorker.onmessage = (event) => {
+            const data = event.data;
+            Graph.graphData(data);
+            
+            // Cacher le spinner de chargement
+            loadingOverlay.classList.remove('visible');
+            updateBtn.textContent = 'Mettre à jour';
+            updateBtn.disabled = false;
+        };
+        
+        // Gérer le clic sur le bouton
+        updateBtn.addEventListener('click', updateGraph);
+
+        // Exécuter l'initialisation
+        updateGraph();
+    </script>
+</body>
+</html>
